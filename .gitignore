@@ -1,24 +1,51 @@
+# === Laravel & React Combined Ignore ===
+
+# Log & Cache
 *.log
 .DS_Store
+Thumbs.db
+.phpunit.result.cache
+.phpactor.json
+.phpunit.result.cache
+
+# Environment Files
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
+
+# Vendor & Node
+/vendor
+/vendor/
+/node_modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel Specific
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+
+# Laravel 4 Specific
+bootstrap/compiled.php
+app/storage/
+
+# Laravel 5 & Lumen Specific with changed public path
+public_html/storage
+public_html/hot
+
+# Development & IDE Files
 /.fleet
 /.idea
 /.nova
 /.phpunit.cache
 /.vscode
 /.zed
-/auth.json
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
+/.vagrant
+auth.json
+
+# Homestead
 Homestead.json
 Homestead.yaml
-Thumbs.db

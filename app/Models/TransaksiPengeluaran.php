@@ -7,11 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class TransaksiPengeluaran extends Model
 {
-    //
-     use HasFactory;
+    use HasFactory;
 
     protected $table = 'transaksi_pengeluaran';
-    protected $fillable = ['tanggal', 'kategori_id', 'jumlah', 'keterangan', 'bukti_file', 'user_id'];
+
+    protected $fillable = [
+        'tanggal',
+        'kategori_id',
+        'jumlah',        
+        'keterangan',
+        'user_id'        
+    ];
+
+    protected $casts = [
+        'tanggal' => 'date',
+        'jumlah' => 'decimal:2'
+    ];
 
     public function kategori()
     {
@@ -22,6 +33,4 @@ class TransaksiPengeluaran extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-
-
 }

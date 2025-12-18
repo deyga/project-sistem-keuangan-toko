@@ -1,7 +1,15 @@
 <?php
 
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
 return [
 
+
+    
+    
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -117,6 +125,9 @@ return [
     | Supported drivers: "file", "cache"
     |
     */
+
+
+    
 
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),

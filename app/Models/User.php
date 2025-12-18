@@ -22,8 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',      // ← Custom field
-        'status',    // ← Custom field
+        'role',      
+        'status',    
     ];
 
     /**
@@ -54,5 +54,16 @@ class User extends Authenticatable
     public function transaksiPengeluaran()
     {
         return $this->hasMany(TransaksiPengeluaran::class, 'user_id');
+    }
+
+    //method cek profile
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isKasir()
+    {
+        return $this->role === 'kasir';
     }
 }

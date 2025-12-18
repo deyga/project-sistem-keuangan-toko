@@ -7,6 +7,9 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+
+
+    
     /**
      * The root template that is loaded on the first page visit.
      *
@@ -33,6 +36,12 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+            ],
+
+            'flash' => [
+            'success' => $request->session()->get('success'),
+            'error' => $request->session()->get('error'),
+            'is_approval' => $request->session()->get('is_approval'), 
             ],
         ];
     }

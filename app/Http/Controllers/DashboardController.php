@@ -1,110 +1,110 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 use App\Models\TransaksiPemasukan;
 use App\Models\TransaksiPengeluaran;
-use Inertia\Inertia;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    // INI HANYA DATA DUMY UNTUK TESTING DASHBOARD
-   public function index()
+    public function index()
     {
-        // ========================================
-        // SUMMARY HARI INI
-        // ========================================
         $today = Carbon::today();
-        
+        $user = Auth::user();
+
+        // Summary Hari Ini
         $pemasukanHariIni = TransaksiPemasukan::whereDate('tanggal', $today)->sum('jumlah');
         $pengeluaranHariIni = TransaksiPengeluaran::whereDate('tanggal', $today)->sum('jumlah');
         $saldoHariIni = $pemasukanHariIni - $pengeluaranHariIni;
-        $jumlahTransaksiHariIni = TransaksiPemasukan::whereDate('tanggal', $today)->count() 
-                                + TransaksiPengeluaran::whereDate('tanggal', $today)->count();
 
-        // ========================================
-        // DATA GRAFIK: TREND 7 HARI TERAKHIR
-        // ========================================
-        $trend7Hari = [];
+        // Chart 7 Hari
+        $chartData = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $trend7Hari[] = [
-                'hari' => $date->isoFormat('ddd'), // Sen, Sel, Rab...
-                'tanggal' => $date->format('Y-m-d'),
+            $chartData[] = [
+                'hari' => $date->format('d M'),
                 'pemasukan' => TransaksiPemasukan::whereDate('tanggal', $date)->sum('jumlah'),
                 'pengeluaran' => TransaksiPengeluaran::whereDate('tanggal', $date)->sum('jumlah'),
             ];
         }
 
-        // ========================================
-        // DATA GRAFIK: PENGELUARAN PER KATEGORI
-        // ========================================
-        $pengeluaranPerKategori = TransaksiPengeluaran::selectRaw('kategori_id, SUM(jumlah) as total')
-            ->with('kategori:id,nama_kategori')
-            ->whereMonth('tanggal', Carbon::now()->month)
-            ->groupBy('kategori_id')
-            ->orderBy('total', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'name' => $item->kategori->nama_kategori,
-                    'value' => (float) $item->total,
-                ];
-            });
+        // Recent Transactions 
+        $pemasukanRaw = TransaksiPemasukan::with('kategori')
+            ->latest('tanggal')
+            ->get();
 
-        // ========================================
-        // TRANSAKSI TERBARU (10 TERAKHIR)
-        // ========================================
-        $transaksiTerbaru = collect()
-            ->merge(
-                TransaksiPemasukan::with('kategori', 'user')
-                    ->latest('created_at')
-                    ->take(5)
-                    ->get()
-                    ->map(fn($t) => [
-                        'id' => $t->id,
-                        'tanggal' => \Carbon\Carbon::parse($t->tanggal)->format('d/m/Y'),
-                        'tipe' => 'Pemasukan',
-                        'kategori' => $t->kategori->nama_kategori,
-                        'jumlah' => $t->jumlah,
-                        'keterangan' => $t->keterangan,
-                    ])
-            )
-            ->merge(
-                TransaksiPengeluaran::with('kategori', 'user')
-                    ->latest('created_at')
-                    ->take(5)
-                    ->get()
-                    ->map(fn($t) => [
-                        'id' => $t->id,
-                        'tanggal' => \Carbon\Carbon::parse($t->tanggal)->format('d/m/Y'),
-                        'tipe' => 'Pengeluaran',
-                        'kategori' => $t->kategori->nama_kategori,
-                        'jumlah' => $t->jumlah,
-                        'keterangan' => $t->keterangan,
-                    ])
-            )
+        $pengeluaranRaw = TransaksiPengeluaran::with('kategori')
+            ->latest('tanggal')
+            ->get();
+
+    
+        $recentTransactions = $pemasukanRaw->merge($pengeluaranRaw)
             ->sortByDesc('tanggal')
-            ->take(10)
+            ->map(function ($t) {
+        
+                $jenis = get_class($t) === 'App\Models\TransaksiPemasukan' ? 'Pemasukan' : 'Pengeluaran';
+                
+                return [
+                    'id' => $t->id,  
+                    'tanggal' => $t->tanggal,
+                    'kategori' => $t->kategori,
+                    'jenis' => $jenis,
+                    'nominal' => $t->jumlah,
+                    'keterangan' => $t->keterangan,
+                ];
+            })
             ->values();
 
-        // ========================================
-        // RETURN DATA KE REACT
-        // ========================================
+        // Pengeluaran per Kategori
+        $pengeluaranKategori = TransaksiPengeluaran::with('kategori')
+            ->get()
+            ->groupBy('kategori.nama_kategori')
+            ->map(function ($group, $key) {
+                return [
+                    'name' => $key ?? 'Lain-lain',
+                    'value' => $group->sum('jumlah'),
+                    'color' => '#' . substr(md5($key), 0, 6),
+                ];
+            })
+            ->values();
+
         return Inertia::render('Dashboard', [
-            'summary' => [
-                'pemasukan_hari_ini' => $pemasukanHariIni,
-                'pengeluaran_hari_ini' => $pengeluaranHariIni,
-                'saldo_hari_ini' => $saldoHariIni,
-                'jumlah_transaksi' => $jumlahTransaksiHariIni,
+            'summaryToday' => [
+                'totalPemasukan' => $pemasukanHariIni,
+                'totalPengeluaran' => $pengeluaranHariIni,
+                'saldo' => $saldoHariIni,
             ],
-            'trend7Hari' => $trend7Hari,
-            'pengeluaranPerKategori' => $pengeluaranPerKategori,
-            'transaksiTerbaru' => $transaksiTerbaru,
+            'chartData' => $chartData,
+            'recentTransactions' => $recentTransactions,
+            'pengeluaranKategori' => $pengeluaranKategori,
+            'transaksiPemasukan' => TransaksiPemasukan::with('kategori')->latest()->get(),
+            'transaksiPengeluaran' => TransaksiPengeluaran::with('kategori')->latest()->get(),
+            'kategoriPemasukan' => \App\Models\KategoriPemasukan::all(),
+            'kategoriPengeluaran' => \App\Models\KategoriPengeluaran::all(),
+
+            //data user & role
+            'auth' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+            ],
+            //
         ]);
     }
 
-  
+    //method log out
+    public function logout(Request $request)
+    {
+        Auth::guard('web')->logout();
+        
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        
+        return redirect('/login')->with('message', 'Anda telah logout');
+    }
 }

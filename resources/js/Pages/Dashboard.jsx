@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 //tambah import(revsi)
 
 import { router } from '@inertiajs/react'; 
-import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, Line, ComposedChart } from 'recharts';
 import { 
   LayoutDashboard, 
   TrendingUp, 
@@ -25,6 +25,9 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Wallet,
+  HandCoins,
+  BanknoteArrowUp,
+  DiamondPercent,
   Database
 
 } from 'lucide-react';
@@ -141,7 +144,7 @@ const Dashboard = ({
   //logic filtered periode
    const filterByPeriod = (transactions, period) => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset ke awal hari
+  today.setHours(0, 0, 0, 0); 
   
   return transactions.filter(t => {
     const transDate = new Date(t.tanggal);
@@ -153,12 +156,12 @@ const Dashboard = ({
       
       case '7-hari':
         const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(today.getDate() - 6); // 7 hari 
+        sevenDaysAgo.setDate(today.getDate() - 6); 
         return transDate >= sevenDaysAgo && transDate <= today;
       
       case '30-hari':
         const thirtyDaysAgo = new Date(today);
-        thirtyDaysAgo.setDate(today.getDate() - 29); // 30 hari termasuk hari ini
+        thirtyDaysAgo.setDate(today.getDate() - 29); 
         return transDate >= thirtyDaysAgo && transDate <= today;
       
       case 'bulan-ini':
@@ -166,7 +169,7 @@ const Dashboard = ({
                transDate.getFullYear() === today.getFullYear();
       
       default:
-        return true; // Tampilkan semua jika tidak ada filter
+        return true; 
     }
   });
 };
@@ -220,6 +223,71 @@ const allTransactions = periodFilteredTransactions
         .reduce((sum, t) => sum + (Number(t.jumlah) || 0), 0);
 
         const saldoPeriod = totalPemasukanPeriod - totalPengeluaranPeriod;
+
+       //revisi//
+
+       //logic generate data 30 hari 
+       const generateMonthlyChartData = () => {
+         const today = new Date();
+         const monthData =[];
+
+         //loop generate 30 h
+         for (let i = 29; i>=0; i--) {
+           const date = new Date(today);
+           date.setDate(today.getDate() -i);
+           
+           date.setHours(0,0,0,0);
+           const dateStr = date.toISOString().split('T')[0];
+           const dayName = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+
+           //pemasukan hari ini
+           const pemasukanHariIni = (transaksiPemasukan || [])
+           .filter(t => {
+           const tDate = new Date(t.tanggal);
+           tDate.setHours(0, 0, 0, 0);
+           return tDate.getTime() === date.getTime();
+           })
+           .reduce((sum, t) => sum + (Number(t.jumlah) || 0), 0)
+
+           // Hitung pengeluaran hari ini
+           const pengeluaranHariIni = (transaksiPengeluaran || [])
+            .filter(t => {
+            const tDate = new Date(t.tanggal);
+            tDate.setHours(0, 0, 0, 0);
+            return tDate.getTime() === date.getTime();
+            })
+            .reduce((sum, t) => sum + (Number(t.jumlah) || 0), 0);
+    
+           // Hitung saldo (selisih)
+           const saldo = pemasukanHariIni - pengeluaranHariIni;
+    
+           // Hitung jumlah transaksi
+           const jumlahTransaksi = 
+           (transaksiPemasukan || []).filter(t => {
+           const tDate = new Date(t.tanggal);
+           tDate.setHours(0, 0, 0, 0);
+           return tDate.getTime() === date.getTime();
+           }).length +
+           (transaksiPengeluaran || []).filter(t => {
+           const tDate = new Date(t.tanggal);
+           tDate.setHours(0, 0, 0, 0);
+           return tDate.getTime() === date.getTime();
+           }).length;
+    
+           monthData.push({
+           date: dateStr,
+           hari: dayName,
+           pemasukan: pemasukanHariIni,
+           pengeluaran: pengeluaranHariIni,
+           saldo: saldo,
+           count: jumlahTransaksi
+          });
+         }
+          return monthData;
+       }
+  
+      const monthlyChartData = generateMonthlyChartData();
+
 
         //LOGIC CALENDER DLL+
 
@@ -409,7 +477,7 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300">
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 bg-green-100 rounded-xl">
-                      <TrendingUp className="text-green-600" size={24} />
+                      <BanknoteArrowUp className="text-green-600" size={24} />
                     </div>
                     <div className="flex items-center gap-1 text-green-600 text-sm font-semibold">
                       <ArrowUpRight size={16} />
@@ -431,7 +499,7 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-lg transition-all duration-300">
                   <div className="flex items-start justify-between mb-4">
                     <div className="p-3 bg-red-100 rounded-xl">
-                      <TrendingDown className="text-red-600" size={24} />
+                      <DiamondPercent className="text-red-600" size={24} />
                     </div>
                     <div className="flex items-center gap-1 text-red-600 text-sm font-semibold">
                       <ArrowDownRight size={16} />
@@ -483,7 +551,7 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-lg font-bold text-green-800">Target Pemasukan Bulan Ini</h3>
       <div className="p-2 bg-green-600 rounded-lg">
-        <TrendingUp className="text-white" size={20} />
+        <HandCoins className="text-white" size={20} />
       </div>
     </div>
     
@@ -547,7 +615,7 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-lg font-bold text-red-800">Budget Pengeluaran Bulan Ini</h3>
       <div className="p-2 bg-red-600 rounded-lg">
-        <TrendingDown className="text-white" size={20} />
+        <Wallet className="text-white" size={20} />
       </div>
     </div>
     
@@ -796,7 +864,9 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
                   
                   {safeChartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={320}>
-                      <AreaChart data={safeChartData}>
+                      <AreaChart data={safeChartData}
+                       margin={{ top: 10, right: 30, left: 20, bottom: 5 }}    
+                      >
                         <defs>
                           <linearGradient id="colorPemasukan" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -814,9 +884,16 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
                           stroke="#94a3b8" 
                           style={{ fontSize: '12px' }} 
                           domain={[0, 'auto']}
-                          ticks={[0, 2000000, 4000000, 6000000, 8000000, 10000000]}
-                          tickFormatter={(value) => `${(value / 1000000).toFixed(0)}jt`}
+                          tickFormatter={(value) => {
+                            if (value >= 1000000) return `${(value / 1000000).toFixed(0)}jt`;
+                            if (value >= 1000) return `${(value / 1000).toFixed(0)}rb`;
+                            return value;
+                           }}
+                           width={50}
+                         
+                         
                         />
+
                         <Tooltip 
                           formatter={(value) => formatRupiah(value)}
                           contentStyle={{ 
@@ -881,9 +958,150 @@ const tanggalLabel = new Date(currentDate).toLocaleDateString('id-ID', {
                   )}
                 </div>
               </div>
-
+                 
+                 {/* composerd chart data 30 hari*/}
+                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+  <div className="flex items-center justify-between mb-6">
+    <div>
+      <h3 className="text-lg font-bold text-slate-800">Analisis Keuangan 30 Hari</h3>
+      <p className="text-sm text-slate-500 mt-1">Kombinasi Line-Bar-Area Chart dengan detail transaksi</p>
+    </div>
+    <div className="flex gap-4">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+        <span className="text-xs text-slate-600">Saldo (Area)</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-green-500"></div>
+        <span className="text-xs text-slate-600">Pemasukan (Bar)</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 bg-red-500"></div>
+        <span className="text-xs text-slate-600">Pengeluaran (Bar)</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+        <span className="text-xs text-slate-600">Jumlah Transaksi (Line)</span>
+      </div>
+    </div>
+  </div>
+  
+  {monthlyChartData.length > 0 ? (
+    <ResponsiveContainer width="100%" height={400}>
+      <ComposedChart data={monthlyChartData}>
+        <defs>
+          <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+        <XAxis 
+          dataKey="hari" 
+          stroke="#94a3b8" 
+          style={{ fontSize: '11px' }}
+          angle={-45}
+          textAnchor="end"
+          height={80}
+        />
+        <YAxis 
+          yAxisId="left"
+          stroke="#94a3b8" 
+          style={{ fontSize: '12px' }}
+          tickFormatter={(value) => `${(value / 1000000).toFixed(1)}jt`}
+        />
+        <YAxis 
+          yAxisId="right"
+          orientation="right"
+          stroke="#f97316" 
+          style={{ fontSize: '12px' }}
+          label={{ value: 'Transaksi', angle: 90, position: 'insideRight' }}
+        />
+        <Tooltip 
+          formatter={(value, name) => {
+            if (name === 'count') return [value, 'Jumlah Transaksi'];
+            return [formatRupiah(value), name];
+          }}
+          contentStyle={{ 
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}
+        />
+        
+        <Area 
+          yAxisId="left"
+          type="monotone" 
+          dataKey="saldo" 
+          fill="url(#colorSaldo)" 
+          stroke="#3b82f6"
+          strokeWidth={2}
+          name="Saldo"
+        />
+        
+        <Bar 
+          yAxisId="left"
+          dataKey="pemasukan" 
+          fill="#10b981"
+          name="Pemasukan"
+          radius={[8, 8, 0, 0]}
+        />
+        
+        <Bar 
+          yAxisId="left"
+          dataKey="pengeluaran" 
+          fill="#ef4444"
+          name="Pengeluaran"
+          radius={[8, 8, 0, 0]}
+        />
+        
+        <Line 
+          yAxisId="right"
+          type="monotone" 
+          dataKey="count" 
+          stroke="#f97316"
+          strokeWidth={3}
+          dot={{ fill: '#f97316', r: 4 }}
+          name="Jumlah Transaksi"
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
+  ) : (
+    <div className="h-96 flex items-center justify-center text-slate-400">
+      <p>Belum ada data transaksi untuk chart bulanan</p>
+    </div>
+  )}
+  
+  {/* Summary Stats */}
+  <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-200">
+    <div className="text-center">
+      <p className="text-xs text-slate-500 mb-1">Total Pemasukan</p>
+      <p className="text-lg font-bold text-green-600">
+        {formatRupiah(monthlyChartData.reduce((sum, d) => sum + d.pemasukan, 0))}
+      </p>
+    </div>
+    <div className="text-center">
+      <p className="text-xs text-slate-500 mb-1">Total Pengeluaran</p>
+      <p className="text-lg font-bold text-red-600">
+        {formatRupiah(monthlyChartData.reduce((sum, d) => sum + d.pengeluaran, 0))}
+      </p>
+    </div>
+    <div className="text-center">
+      <p className="text-xs text-slate-500 mb-1">Saldo Akhir</p>
+      <p className="text-lg font-bold text-blue-600">
+        {formatRupiah(monthlyChartData.reduce((sum, d) => sum + d.saldo, 0))}
+      </p>
+    </div>
+    <div className="text-center">
+      <p className="text-xs text-slate-500 mb-1">Total Transaksi</p>
+      <p className="text-lg font-bold text-orange-600">
+        {monthlyChartData.reduce((sum, d) => sum + d.count, 0)}
+      </p>
+    </div>
+  </div>
+</div>
               
-
 
               {/* */}
 

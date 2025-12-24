@@ -76,6 +76,10 @@ Route::middleware(['auth'])->group(function () {
      
     //fix debug
     Route::middleware('auth')->group(function () {
+
+     //API unread count
+    Route::get('/api/emails/unread-count', [InternalEmailController::class, 'unreadCount']);
+
      Route::get('/api/emails/inbox', [InternalEmailController::class, 'inboxApi']);
      Route::get('/api/emails/sent', [InternalEmailController::class, 'sentApi']);
      Route::get('/api/emails/{id}', [InternalEmailController::class, 'showApi']);
@@ -83,7 +87,7 @@ Route::middleware(['auth'])->group(function () {
 
    
     //API unread count
-   Route::get('/api/emails/unread-count', [InternalEmailController::class, 'unreadCount']);
+    // Route::get('/api/emails/unread-count', [InternalEmailController::class, 'unreadCount']);
 
    
 

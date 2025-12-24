@@ -51,7 +51,7 @@ const EmailInbox = ({ onBack }) => {
   setProcessing(true);
 
   try {
-    console.log('Deleting email:', emailId);
+    console.log('Deleting email:', selectedEmail.id);
     const res = await fetch(`/api/emails/${selectedEmail.id}/approve`, {
       method: 'POST',
       headers: {
@@ -69,18 +69,22 @@ const EmailInbox = ({ onBack }) => {
     console.log('Response status:', res.status);
 
     if (!res.ok) {
-      throw new Error('Approve gagal');
+      const errorData = await res.json(); 
+      console.error(' Error response:', errorData);      
+
+      throw new Error('Approve gagal' );
     }
 
     const data = await res.json();
-    console.error('Error response:', errorData);
+    console.log('success response:', data)
+    //console.error('Error response:', errorData);
     alert(data.message || 'Pengajuan berhasil disetujui');
 
     setSelectedEmail(null);
     loadEmails(); // refresh inbox
 
   } catch (err) {
-    console.error('Delete error:', err); 
+    console.error('Approve error:', err); 
    // console.error(err);
     alert('Terjadi kesalahan saat approve');
   } finally {
